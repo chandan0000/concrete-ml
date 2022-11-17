@@ -39,24 +39,24 @@ OS_VERSIONS = {
 
 def main(args):
     """Entry point to generate CI test matrix."""
-    github_action_matrix = []
+    github_action_matrix = [
+        {
+            "os_kind": OS.LINUX,
+            "runs_on": OS_VERSIONS[OS.LINUX],
+            "python_version": python_version,
+        }
+        for python_version in args.linux_python_versions
+    ]
 
-    for python_version in args.linux_python_versions:
-        github_action_matrix.append(
-            {
-                "os_kind": OS.LINUX,
-                "runs_on": OS_VERSIONS[OS.LINUX],
-                "python_version": python_version,
-            }
-        )
-    for python_version in args.macos_python_versions:
-        github_action_matrix.append(
-            {
-                "os_kind": OS.MACOS,
-                "runs_on": OS_VERSIONS[OS.MACOS],
-                "python_version": python_version,
-            }
-        )
+
+    github_action_matrix.extend(
+        {
+            "os_kind": OS.MACOS,
+            "runs_on": OS_VERSIONS[OS.MACOS],
+            "python_version": python_version,
+        }
+        for python_version in args.macos_python_versions
+    )
 
     print(json.dumps(github_action_matrix, indent=4, cls=EnumEncoder))
 

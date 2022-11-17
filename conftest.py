@@ -69,12 +69,12 @@ def get_keyring_dir_from_session_or_default(
         return DEFAULT_KEYRING_PATH
 
     keyring_dir = session.config.getoption("--keyring-dir", default=None)
-    if keyring_dir is not None:
-        if keyring_dir.lower() == "disable":
-            return None
-        keyring_dir = Path(keyring_dir).expanduser().resolve()
-    else:
+    if keyring_dir is None:
         keyring_dir = DEFAULT_KEYRING_PATH
+    elif keyring_dir.lower() == "disable":
+        return None
+    else:
+        keyring_dir = Path(keyring_dir).expanduser().resolve()
     return keyring_dir
 
 
@@ -231,15 +231,13 @@ def autoseeding_of_everything(record_property, request):
 @pytest.fixture
 def is_weekly_option(request):
     """Function to see if we are in --weekly configuration"""
-    is_weekly = request.config.getoption("--weekly")
-    return is_weekly
+    return request.config.getoption("--weekly")
 
 
 @pytest.fixture
 def is_vl_only_option(request):
     """Function to see if we are in --only_vl_tests configuration"""
-    only_vl_tests = request.config.getoption("--only_vl_tests")
-    return only_vl_tests
+    return request.config.getoption("--only_vl_tests")
 
 
 def check_is_good_execution_for_quantized_models_impl(
@@ -282,14 +280,7 @@ def check_is_good_execution_impl(
     # >= if there are 8 bits signed integers
     allow_relaxed_tests_passing = max_bit_width >= MAXIMUM_TLU_BIT_WIDTH
 
-    # For exactly MAXIMUM_TLU_BIT_WIDTH bits, we have not exactly 100%
-    # accuracy, so let's have more tries
-    nb_tries = 10
-
-    if max_bit_width < MAXIMUM_TLU_BIT_WIDTH:
-        # Here, things are supposed to be more exact, so let's reduce nb_tries
-        nb_tries = 3
-
+    nb_tries = 3 if max_bit_width < MAXIMUM_TLU_BIT_WIDTH else 10
     # Prepare the bool array to record if cells were properly computed
     preprocessed_args = tuple(preprocess_input_func(val) for val in args)
     cells_were_properly_computed = numpy.zeros_like(function(*preprocessed_args), dtype=bool)
@@ -348,9 +339,7 @@ def check_array_equality_impl(actual: Any, expected: Any, verbose: bool = True):
     """Assert that `actual` is equal to `expected`."""
 
     assert numpy.array_equal(actual, expected), (
-        ""
-        if not verbose
-        else f"""
+        f"""
 
 Expected Output
 ===============
@@ -361,6 +350,8 @@ Actual Output
 {actual}
 
         """
+        if verbose
+        else ""
     )
 
 

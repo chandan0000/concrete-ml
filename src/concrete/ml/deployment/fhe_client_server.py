@@ -100,8 +100,7 @@ class FHEModelServer:
         result = self.server.run(
             unserialized_encrypted_quantized_data, unserialized_evaluation_keys
         )
-        serialized_result = self.server.client_specs.serialize_public_result(result)
-        return serialized_result
+        return self.server.client_specs.serialize_public_result(result)
 
 
 class FHEModelDev:
@@ -176,9 +175,7 @@ class FHEModelDev:
         Raises:
             Exception: path_dir is not empty
         """
-        # Check if the path_dir is empty with pathlib
-        listdir = list(Path(self.path_dir).glob("**/*"))
-        if len(listdir) > 0:
+        if listdir := list(Path(self.path_dir).glob("**/*")):
             raise Exception(
                 f"path_dir: {self.path_dir} is not empty."
                 "Please delete it before saving a new model."
@@ -230,7 +227,7 @@ class FHEModelClient:
         # Load
         self.load()
 
-    def load(self):  # pylint: disable=no-value-for-parameter
+    def load(self):    # pylint: disable=no-value-for-parameter
         """Load the quantizers along with the FHE specs."""
         self.client = cnp.Client.load(Path(self.path_dir).joinpath("client.zip"), self.key_dir)
 
@@ -253,12 +250,16 @@ class FHEModelClient:
 
         # Initialize the model
         self.model = model_dict[serialized_processing["model_type"]]()
-        self.model.input_quantizers = []
         self.model.output_quantizers = []
-        for quantizer_dict in serialized_processing["input_quantizers"]:
-            self.model.input_quantizers.append(UniformQuantizer(**quantizer_dict))
-        for quantizer_dict in serialized_processing["output_quantizers"]:
-            self.model.output_quantizers.append(UniformQuantizer(**quantizer_dict))
+        self.model.input_quantizers = [
+            UniformQuantizer(**quantizer_dict)
+            for quantizer_dict in serialized_processing["input_quantizers"]
+        ]
+
+        self.model.output_quantizers.extend(
+            UniformQuantizer(**quantizer_dict)
+            for quantizer_dict in serialized_processing["output_quantizers"]
+        )
 
         # Load model parameters
         self.model.post_processing_params = serialized_processing["model_post_processing_params"]
@@ -294,9 +295,7 @@ class FHEModelClient:
         # Encrypt the values
         enc_qx = self.client.encrypt(quantized_x)
 
-        # Serialize the encrypted values to be sent to the server
-        serialized_enc_qx = self.client.specs.serialize_public_args(enc_qx)
-        return serialized_enc_qx
+        return self.client.specs.serialize_public_args(enc_qx)
 
     def deserialize_decrypt(
         self, serialized_encrypted_quantized_result: cnp.PublicArguments
@@ -315,11 +314,7 @@ class FHEModelClient:
             serialized_encrypted_quantized_result
         )
 
-        # Decrypt the values
-        unserialized_decrypted_quantized_result = self.client.decrypt(
-            unserialized_encrypted_quantized_result
-        )
-        return unserialized_decrypted_quantized_result
+        return self.client.decrypt(unserialized_encrypted_quantized_result)
 
     def deserialize_decrypt_dequantize(
         self, serialized_encrypted_quantized_result: cnp.PublicArguments
@@ -338,8 +333,4 @@ class FHEModelClient:
             serialized_encrypted_quantized_result
         )
 
-        # Dequantize the values and apply the model post processing
-        unserialized_decrypted_dequantized_result = self.model.post_processing(
-            unserialized_decrypted_quantized_result
-        )
-        return unserialized_decrypted_dequantized_result
+        return self.model.post_processing(unserialized_decrypted_quantized_result)

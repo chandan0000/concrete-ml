@@ -292,8 +292,10 @@ def main(n_bits):
     if os.environ.get("BENCHMARK_NO_FHE", "0") == "0" and n_bits == 2:
         # Select a smaller set for FHE tests
         small_test_dataset = TensorDataset(
-            torch.Tensor(x_test[0:N_MAX_RUN_FHE, ::]), torch.Tensor(y_test[0:N_MAX_RUN_FHE])
+            torch.Tensor(x_test[0:N_MAX_RUN_FHE, ::]),
+            torch.Tensor(y_test[:N_MAX_RUN_FHE]),
         )
+
         small_test_dataloader = DataLoader(small_test_dataset)
 
         # Now compile and run the FHE evaluation on a small set in virtual lib mode

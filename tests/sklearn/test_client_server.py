@@ -37,35 +37,40 @@ class OnDiskNetwork:
 
     def client_send_evaluation_key_to_server(self, serialized_evaluation_keys):
         """Send the public key to the server."""
-        with open(self.server_dir.name + "/serialized_evaluation_keys.ekl", "wb") as f:
+        with open(f"{self.server_dir.name}/serialized_evaluation_keys.ekl", "wb") as f:
             f.write(serialized_evaluation_keys)
 
     def client_send_input_to_server_for_prediction(self, encrypted_input):
         """Send the input to the server."""
-        with open(self.server_dir.name + "/serialized_evaluation_keys.ekl", "rb") as f:
+        with open(f"{self.server_dir.name}/serialized_evaluation_keys.ekl", "rb") as f:
             serialized_evaluation_keys = f.read()
         encrypted_prediction = FHEModelServer(self.server_dir.name).run(
             encrypted_input, serialized_evaluation_keys
         )
-        with open(self.server_dir.name + "/encrypted_prediction.enc", "wb") as f:
+        with open(f"{self.server_dir.name}/encrypted_prediction.enc", "wb") as f:
             f.write(encrypted_prediction)
 
     def dev_send_model_to_server(self):
         """Send the model to the server."""
-        copyfile(self.dev_dir.name + "/server.zip", self.server_dir.name + "/server.zip")
+        copyfile(
+            f"{self.dev_dir.name}/server.zip", f"{self.server_dir.name}/server.zip"
+        )
 
     def server_send_encrypted_prediction_to_client(self):
         """Send the encrypted prediction to the client."""
-        with open(self.server_dir.name + "/encrypted_prediction.enc", "rb") as f:
+        with open(f"{self.server_dir.name}/encrypted_prediction.enc", "rb") as f:
             encrypted_prediction = f.read()
         return encrypted_prediction
 
     def dev_send_clientspecs_and_modelspecs_to_client(self):
         """Send the clientspecs and evaluation key to the client."""
-        copyfile(self.dev_dir.name + "/client.zip", self.client_dir.name + "/client.zip")
         copyfile(
-            self.dev_dir.name + "/serialized_processing.json",
-            self.client_dir.name + "/serialized_processing.json",
+            f"{self.dev_dir.name}/client.zip", f"{self.client_dir.name}/client.zip"
+        )
+
+        copyfile(
+            f"{self.dev_dir.name}/serialized_processing.json",
+            f"{self.client_dir.name}/serialized_processing.json",
         )
 
     def cleanup(self):
@@ -95,10 +100,8 @@ def test_client_server_sklearn(default_configuration_no_jit, model, parameters, 
             x_train = x_train.astype(numpy.float32)
             x_test = x_test.astype(numpy.float32)
 
-            if model.func is NeuralNetRegressor:
-                # Reshape y_train and y_test if 1d (regression for neural nets)
-                if y_train.ndim == 1:
-                    y_train = y_train.reshape(-1, 1).astype(numpy.float32)
+            if model.func is NeuralNetRegressor and y_train.ndim == 1:
+                y_train = y_train.reshape(-1, 1).astype(numpy.float32)
     elif model in [XGBClassifier, RandomForestClassifier, XGBRegressor]:
         model_params = {
             "n_estimators": 5,

@@ -297,10 +297,11 @@ def should_test_config_in_fhe(
         return False
 
     if model_name in {"DecisionTreeClassifier", "DecisionTreeRegressor"}:
-        # Only small trees should be compiled to FHE
-        if "max_depth" in config and config["max_depth"] is not None and config["n_bits"] <= 7:
-            return True
-        return False
+        return (
+            "max_depth" in config
+            and config["max_depth"] is not None
+            and config["n_bits"] <= 7
+        )
 
     if model_name in {
         "LogisticRegression",
@@ -315,9 +316,8 @@ def should_test_config_in_fhe(
         if config["n_bits"] == 3 and n_features <= 2:
             return True
 
-    if model_name == "LinearRegression":
-        if config["n_bits"] <= 3:
-            return True
+    if model_name == "LinearRegression" and config["n_bits"] <= 3:
+        return True
 
     if model_name in {
         "XGBClassifier",
@@ -325,10 +325,7 @@ def should_test_config_in_fhe(
         "RandomForestClassifier",
         "RandomForestRegressor",
     }:
-        if config["n_bits"] <= 7:
-            return True
-        return False
-
+        return config["n_bits"] <= 7
     if model_name in {"NeuralNetRegressor", "NeuralNetClassifier"}:
         # For NNs only 7 bit accumulators with few neurons should be compiled to FHE
         return (
@@ -343,9 +340,6 @@ def should_test_config_in_fhe(
 def train_and_test_regressor(
     regressor: type, dataset: str, config: Dict[str, Any], local_args: argparse.Namespace
 ):
-    # Could be changed but not very useful
-    size_of_compilation_dataset = 1000
-
     if local_args.verbose:
         print("Start")
         time_current = time.time()
@@ -410,6 +404,9 @@ def train_and_test_regressor(
             time_current = time.time()
             print("Compile")
 
+        # Could be changed but not very useful
+        size_of_compilation_dataset = 1000
+
         x_test_comp = x_test[0:size_of_compilation_dataset, :]
 
         # Compile and report compilation time
@@ -447,7 +444,7 @@ def train_and_test_regressor(
 
         # To keep the test short and to fit in RAM we limit the number of test samples
         x_test = x_test[0 : local_args.fhe_samples, :]
-        y_test = y_test[0 : local_args.fhe_samples]
+        y_test = y_test[:local_args.fhe_samples]
 
         # Now predict with our regressor and report its goodness of fit. We also measure
         # execution time per test sample
@@ -459,10 +456,11 @@ def train_and_test_regressor(
 
         run_and_report_regression_metrics(
             y_test,
-            y_pred_q[0 : local_args.fhe_samples],
+            y_pred_q[: local_args.fhe_samples],
             "quant-clear-fhe-set",
             "Quantized Clear on FHE set",
         )
+
 
         progress.measure(
             id="fhe-inference_time",
@@ -486,9 +484,6 @@ def train_and_test_classifier(
     identified by its name.
     """
 
-    # Could be changed but not very useful
-    size_of_compilation_dataset = 1000
-
     if local_args.verbose:
         print("Start")
         time_current = time.time()
@@ -502,7 +497,7 @@ def train_and_test_classifier(
     # The OpenML datasets have target variables that might not be integers (for classification
     # integers would represent class ids). Mostly the targets are strings which we do not support.
     # We use an ordinal encoder to encode strings to integers
-    if not y_all.dtype == np.int32:
+    if y_all.dtype != np.int32:
         enc = OrdinalEncoder()
         y_all = [[y] for y in y_all]
         enc.fit(y_all)
@@ -583,6 +578,9 @@ def train_and_test_classifier(
             time_current = time.time()
             print("Compile")
 
+        # Could be changed but not very useful
+        size_of_compilation_dataset = 1000
+
         x_test_comp = x_test[0:size_of_compilation_dataset, :]
 
         # Compile and report compilation time
@@ -622,7 +620,7 @@ def train_and_test_classifier(
 
         # To keep the test short and to fit in RAM we limit the number of test samples
         x_test = x_test[0 : local_args.fhe_samples, :]
-        y_test = y_test[0 : local_args.fhe_samples]
+        y_test = y_test[:local_args.fhe_samples]
 
         # Now predict with our classifier and report its accuracy. We also measure
         # execution time per test sample
@@ -634,10 +632,11 @@ def train_and_test_classifier(
 
         run_and_report_classification_metrics(
             y_test,
-            y_pred_q[0 : local_args.fhe_samples],
+            y_pred_q[: local_args.fhe_samples],
             "quant-clear-fhe-set",
             "Quantized Clear on FHE set",
         )
+
 
         progress.measure(
             id="fhe-inference_time",
@@ -677,10 +676,10 @@ def compute_number_of_components(n_bits: Union[Dict, int]) -> int:
         n_bits_inputs = n_bits["op_inputs"]
         n_bits_weights = n_bits["op_weights"]
 
-    n_components = math.floor(
-        (2**MAXIMUM_TLU_BIT_WIDTH - 1) / ((2**n_bits_inputs - 1) * (2**n_bits_weights - 1))
+    return math.floor(
+        (2**MAXIMUM_TLU_BIT_WIDTH - 1)
+        / ((2**n_bits_inputs - 1) * (2**n_bits_weights - 1))
     )
-    return n_components
 
 
 # pylint: disable-next=redefined-outer-name,too-many-branches
@@ -813,16 +812,14 @@ def benchmark_name_to_config(
                 f"{benchmark_name} couldn't be parsed\n"
                 f"{config_str} does not match any know configuration"
             )
-    # GLMs
     elif model_name in {"PoissonRegressor", "GammaRegressor", "TweedieRegressor"}:
-        if len(config_str) == 3:
-            config_dict["n_bits_inputs"] = int(config_str[0])
-            config_dict["n_bits_weights"] = int(config_str[1])
-            config_dict["pca_n_components"] = int(config_str[2])
-        else:
+        if len(config_str) != 3:
             raise ValueError(
                 f"{benchmark_name} couldn't be parsed\n"
                 f"{config_str} does not match any know configuration"
             )
 
+        config_dict["n_bits_inputs"] = int(config_str[0])
+        config_dict["n_bits_weights"] = int(config_str[1])
+        config_dict["pca_n_components"] = int(config_str[2])
     return model_name, dataset_name, config_dict

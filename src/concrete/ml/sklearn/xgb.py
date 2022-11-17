@@ -81,10 +81,9 @@ class XGBClassifier(BaseTreeClassifierMixin):
         # an issue with n_jobs != 1 on macOS
         # FIXME: https://github.com/zama-ai/concrete-ml-internal/issues/506, remove this workaround
         # once https://github.com/zama-ai/concrete-ml-internal/issues/503 is fixed
-        if platform.system() == "Darwin":
-            if n_jobs != 1:  # pragma: no cover
-                warnings.warn("forcing n_jobs = 1 on mac for segfault issue")  # pragma: no cover
-                n_jobs = 1  # pragma: no cover
+        if platform.system() == "Darwin" and n_jobs != 1:
+            warnings.warn("forcing n_jobs = 1 on mac for segfault issue")  # pragma: no cover
+            n_jobs = 1  # pragma: no cover
 
         BaseTreeClassifierMixin.__init__(self, n_bits=n_bits)
 
@@ -238,10 +237,9 @@ class XGBRegressor(BaseTreeRegressorMixin):
         # an issue with n_jobs != 1 on macOS
         # FIXME: https://github.com/zama-ai/concrete-ml-internal/issues/506, remove this workaround
         # once https://github.com/zama-ai/concrete-ml-internal/issues/503 is fixed
-        if platform.system() == "Darwin":
-            if n_jobs != 1:  # pragma: no cover
-                warnings.warn("forcing n_jobs = 1 on mac for segfault issue")  # pragma: no cover
-                n_jobs = 1  # pragma: no cover
+        if platform.system() == "Darwin" and n_jobs != 1:
+            warnings.warn("forcing n_jobs = 1 on mac for segfault issue")  # pragma: no cover
+            n_jobs = 1  # pragma: no cover
 
         BaseTreeRegressorMixin.__init__(self, n_bits=n_bits)
 

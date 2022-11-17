@@ -191,10 +191,10 @@ class QuantizedTorchEstimatorMixin:
             # Transform in a 2d array where [p, 1-p] is the output
             y_preds = numpy.concatenate((y_preds, 1 - y_preds), axis=1)  # pragma: no cover
 
-        elif self.post_processing_params["post_processing_function_name"] == "_identity":
-            pass
-
-        else:
+        elif (
+            self.post_processing_params["post_processing_function_name"]
+            != "_identity"
+        ):
             raise ValueError(
                 "Unknown post-processing function "
                 f"{self.post_processing_params['post_processing_function_name']}"
@@ -241,8 +241,7 @@ class QuantizedTorchEstimatorMixin:
         # Quantize the compilation input set using the quantization parameters computed in .fit()
         quantized_numpy_inputset = self.quantized_module_.quantize_input(X)
 
-        # Call the compilation backend to produce the FHE inference circuit
-        circuit = self.quantized_module_.compile(
+        return self.quantized_module_.compile(
             quantized_numpy_inputset,
             configuration=configuration,
             compilation_artifacts=compilation_artifacts,
@@ -250,8 +249,6 @@ class QuantizedTorchEstimatorMixin:
             use_virtual_lib=use_virtual_lib,
             p_error=p_error,
         )
-
-        return circuit
 
     def fit(self, X, y, **fit_params):
         """Initialize and fit the module.
@@ -330,11 +327,11 @@ class QuantizedTorchEstimatorMixin:
         else:
             post_processing_function_name = params.__name__
             post_processing_function_keywords = {}
-        post_processing_params: Dict[str, Any] = {}
-        post_processing_params["post_processing_function_name"] = post_processing_function_name
-        post_processing_params[
-            "post_processing_function_keywords"
-        ] = post_processing_function_keywords
+        post_processing_params: Dict[str, Any] = {
+            "post_processing_function_name": post_processing_function_name,
+            "post_processing_function_keywords": post_processing_function_keywords,
+        }
+
         self.post_processing_params = post_processing_params
 
     # Disable pylint here because we add an additional argument to .predict,
@@ -373,42 +370,41 @@ class QuantizedTorchEstimatorMixin:
         Raises:
             ValueError: if the estimator was not yet trained or compiled
         """
-        if execute_in_fhe:
-            if self.quantized_module_ is None:
-                raise ValueError(
-                    "The classifier needs to be calibrated before compilation,"
-                    " please call .fit() first!"
-                )
-            if not self.quantized_module_.is_compiled:
-                raise ValueError(
-                    "The classifier is not yet compiled to FHE, please call .compile() first"
-                )
+        if not execute_in_fhe:
+            # For prediction in the clear we call the super class which, in turn,
+            # will end up calling .infer of this class
+            return super().predict_proba(X)
+        if self.quantized_module_ is None:
+            raise ValueError(
+                "The classifier needs to be calibrated before compilation,"
+                " please call .fit() first!"
+            )
+        if not self.quantized_module_.is_compiled:
+            raise ValueError(
+                "The classifier is not yet compiled to FHE, please call .compile() first"
+            )
 
-            # Run over each element of X individually and aggregate predictions in a vector
-            if X.ndim == 1:
-                X = X.reshape((1, -1))
-            X = check_array_and_assert(X)
-            y_pred = None
-            for idx, x in enumerate(X):
-                q_x = self.quantized_module_.quantize_input(x).reshape(1, -1)
-                q_pred = self.quantized_module_.forward_fhe.encrypt_run_decrypt(q_x)
-                if y_pred is None:
-                    assert_true(
-                        isinstance(q_pred, numpy.ndarray),
-                        f"bad type {q_pred}, expected np.ndarray",
-                    )
-                    # pylint is lost: Instance of 'tuple' has no 'size' member (no-member)
-                    # because it doesn't understand the Union in encrypt_run_decrypt
-                    # pylint: disable=no-member
-                    y_pred = numpy.zeros((X.shape[0], q_pred.size), numpy.float32)
-                    # pylint: enable=no-member
-                y_pred[idx, :] = q_pred
-            y_pred = self.post_processing(y_pred)
-            return y_pred
-
-        # For prediction in the clear we call the super class which, in turn,
-        # will end up calling .infer of this class
-        return super().predict_proba(X)
+        # Run over each element of X individually and aggregate predictions in a vector
+        if X.ndim == 1:
+            X = X.reshape((1, -1))
+        X = check_array_and_assert(X)
+        y_pred = None
+        for idx, x in enumerate(X):
+            q_x = self.quantized_module_.quantize_input(x).reshape(1, -1)
+            q_pred = self.quantized_module_.forward_fhe.encrypt_run_decrypt(q_x)
+            if y_pred is None:
+                assert_true(
+                    isinstance(q_pred, numpy.ndarray),
+                    f"bad type {q_pred}, expected np.ndarray",
+                )
+                # pylint is lost: Instance of 'tuple' has no 'size' member (no-member)
+                # because it doesn't understand the Union in encrypt_run_decrypt
+                # pylint: disable=no-member
+                y_pred = numpy.zeros((X.shape[0], q_pred.size), numpy.float32)
+                # pylint: enable=no-member
+            y_pred[idx, :] = q_pred
+        y_pred = self.post_processing(y_pred)
+        return y_pred
 
     # pylint: enable=arguments-differ
 
@@ -611,9 +607,7 @@ class BaseTreeEstimatorMixin(sklearn.base.BaseEstimator):
                 qX_i.astype(numpy.uint8).reshape(1, qX_i.shape[0])
             )
             y_preds.append(fhe_pred)
-        y_preds_array = numpy.concatenate(y_preds, axis=-1)
-
-        return y_preds_array
+        return numpy.concatenate(y_preds, axis=-1)
 
     def compile(
         self,
@@ -1242,8 +1236,7 @@ class SklearnLinearModelMixin(sklearn.base.BaseEstimator):
         # Quantize the input
         quantized_numpy_inputset = self.quantized_module_.quantize_input(X)
 
-        # Compile the model
-        circuit = self.quantized_module_.compile(
+        return self.quantized_module_.compile(
             quantized_numpy_inputset,
             configuration,
             compilation_artifacts,
@@ -1251,8 +1244,6 @@ class SklearnLinearModelMixin(sklearn.base.BaseEstimator):
             use_virtual_lib=use_virtual_lib,
             p_error=p_error,
         )
-
-        return circuit
 
 
 class SklearnLinearClassifierMixin(SklearnLinearModelMixin):
@@ -1277,8 +1268,7 @@ class SklearnLinearClassifierMixin(SklearnLinearModelMixin):
         Returns:
             numpy.ndarray: Confidence scores for samples.
         """
-        y_preds = super().predict(X, execute_in_fhe=execute_in_fhe)
-        return y_preds
+        return super().predict(X, execute_in_fhe=execute_in_fhe)
 
     def predict_proba(self, X: numpy.ndarray, execute_in_fhe: bool = False) -> numpy.ndarray:
         """Predict class probabilities for samples.

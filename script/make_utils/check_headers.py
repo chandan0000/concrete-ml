@@ -19,16 +19,12 @@ def is_web_link(target: str) -> bool:
     """Check if the link points to http or https"""
     if target.startswith("http://"):
         return True
-    if target.startswith("https://"):
-        return True
-    return False
+    return bool(target.startswith("https://"))
 
 
 def is_mailto_link(target: str) -> bool:
     """Check if the link points to a mailto"""
-    if "mailto:" in target:
-        return True
-    return False
+    return "mailto:" in target
 
 
 def contains_header(ast, header) -> bool:
@@ -94,10 +90,7 @@ def main():
                 # Split file and header
                 splitted = node.target.split("#")
                 if len(splitted) == 2:
-                    if splitted[0]:  # Link to another folder
-                        file_path = Path(splitted[0])
-                    else:  # Link to self
-                        file_path = Path(document_path)
+                    file_path = Path(splitted[0]) if splitted[0] else Path(document_path)
                     header = splitted[1]
                 elif len(splitted) == 1:
                     file_path, header = Path(splitted[0]), None
@@ -112,18 +105,16 @@ def main():
                     errors.append(f"{abs_file_path} does not exist")
                     continue
 
-                # Check header is contained
                 if header:
                     if abs_file_path not in asts:
                         errors.append(
                             f"{abs_file_path} was not parsed into AST (from {document_path})"
                         )
                         continue
-                    if header and not contains_header(asts[abs_file_path], header):
+                    if not contains_header(asts[abs_file_path], header):
                         errors.append(
                             f"{header} from {document_path} does not exist in {abs_file_path}"
                         )
-                        continue
     if errors:
         raise ValueError(
             "Errors:\n" + "\n".join([f"- {error}" for error in errors]) + f"\n{len(errors)} errors"

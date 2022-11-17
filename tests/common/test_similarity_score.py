@@ -45,17 +45,11 @@ def test_r2(
 
     predicted += predicted_offset
 
-    if predicted_stdev is None:
-        # If there is no correlation between gt and predicted, the test should fail
-        should_fail = True
-    elif predicted_stdev <= SMALL_VALUE and predicted_offset <= SMALL_VALUE:
-        # If the predicted values are very close to the target values (very low perturbation)
-        should_fail = False
-    else:
-        # If there is a difference in stdev or in the offset, the test should fail
-        # Note that the stdev should not be as high as the offset as by chance it could break the
-        # test
-        should_fail = True
+    should_fail = (
+        predicted_stdev is None
+        or predicted_stdev > SMALL_VALUE
+        or predicted_offset > SMALL_VALUE
+    )
 
     if should_fail:
         with pytest.raises(AssertionError):

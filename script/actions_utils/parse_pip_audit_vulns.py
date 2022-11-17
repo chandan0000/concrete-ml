@@ -10,12 +10,11 @@ from typing import List
 def format_vulnerability(pkg_name, pkg_version, vuln_info: dict) -> List[str]:
     """Format a vulnerability info."""
 
-    vuln_strs = [
+    return [
         f"{pkg_name}({pkg_version}) - ID: {vuln['id']} "
         f"fixed in {', '.join(vuln['fix_versions'])}"
         for vuln in vuln_info
     ]
-    return vuln_strs
 
 
 # Cannot have a backslash in f-string, so create a constant for newline
@@ -40,8 +39,7 @@ def main(args):
         json_data = json.loads(json_content[0])["dependencies"]
         # print(json.dumps(json_data, indent=4))
         for entry in json_data:
-            vuln_entries = entry.get("vulns", [])
-            if vuln_entries:
+            if vuln_entries := entry.get("vulns", []):
                 has_vulns = True
                 formatted_vulns = format_vulnerability(
                     entry["name"], entry["version"], vuln_entries

@@ -471,7 +471,7 @@ class QuantizedConv(QuantizedOp):
         # Get the ONNX parameters
         self.dilations = attrs.get("dilations", (1, 1))
         self.group = attrs.get("group", 1)
-        self.kernel_shape = attrs.get("kernel_shape", None)
+        self.kernel_shape = attrs.get("kernel_shape")
         self.pads = attrs.get("pads", (0, 0, 0, 0))
         self.strides = attrs.get("strides", (1, 1))
 
@@ -648,8 +648,8 @@ class QuantizedAvgPool(QuantizedOp):
         super().__init__(n_bits_output, int_input_names, constant_inputs, input_quant_opts, **attrs)
 
         # Get the ONNX parameters
-        self.ceil_mode = attrs.get("ceil_mode", None)
-        self.kernel_shape = attrs.get("kernel_shape", None)
+        self.ceil_mode = attrs.get("ceil_mode")
+        self.kernel_shape = attrs.get("kernel_shape")
         self.pads = attrs.get("pads", (0, 0, 0, 0))
         self.strides = attrs.get("strides", (1, 1))
 
@@ -776,7 +776,7 @@ class QuantizedPad(QuantizedOp):
         super().__init__(n_bits_output, int_input_names, constant_inputs, input_quant_opts, **attrs)
 
         # Get the ONNX parameters
-        self.mode = attrs.get("mode", None)
+        self.mode = attrs.get("mode")
         assert_true(
             self.mode == "constant", "Padding operator only supports padding with a constant"
         )
@@ -1009,10 +1009,10 @@ class QuantizedFlatten(QuantizedOp):
 
         axis = attrs["axis"]
         newshape: Sequence[SupportsIndex]
-        newshape = (
-            *q_inputs[0].qvalues.shape[0:axis],
-            numpy.prod(q_inputs[0].qvalues.shape[axis:]),
+        newshape = *q_inputs[0].qvalues.shape[:axis], numpy.prod(
+            q_inputs[0].qvalues.shape[axis:]
         )
+
 
         # Return a new quantized array with the same quantization parameters
         return QuantizedArray(
@@ -1306,7 +1306,7 @@ class QuantizedReduceSum(QuantizedOp):
 
         final_sum = scaled_msbs
 
-        output_qarray = QuantizedArray(
+        return QuantizedArray(
             self.n_bits,
             final_sum,
             value_is_float=True,
@@ -1314,7 +1314,6 @@ class QuantizedReduceSum(QuantizedOp):
             stats=self.output_quant_stats,
             params=self.output_quant_params,
         )
-        return output_qarray
 
 
 class QuantizedErf(QuantizedOp):
@@ -1450,7 +1449,7 @@ class QuantizedBrevitasQuant(QuantizedOp):
         options.is_precomputed_qat = True
 
         f_outputs = self.call_impl(*prepared_inputs, **attrs)
-        res = QuantizedArray(
+        return QuantizedArray(
             n_bits,
             f_outputs,
             value_is_float=True,
@@ -1458,7 +1457,6 @@ class QuantizedBrevitasQuant(QuantizedOp):
             stats=self.output_quant_stats,
             params=quant_params,
         )
-        return res
 
 
 class QuantizedTranspose(QuantizedOp):

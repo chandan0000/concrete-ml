@@ -71,9 +71,7 @@ def test_seed_sklearn_regression_decision_tree(
     # Test the determinism of our package (even if the bitwidth may be too large)
     try:
         model.compile(x, configuration=default_configuration, show_mlir=True)
-    except RuntimeError as err:
-        print(err)
-    except AssertionError as err:
+    except (RuntimeError, AssertionError) as err:
         print(err)
 
 
@@ -106,9 +104,7 @@ def test_seed_sklearn_classification_decision_tree(
     # Test the determinism of our package (even if the bitwidth may be too large)
     try:
         model.compile(x, configuration=default_configuration, show_mlir=True)
-    except RuntimeError as err:
-        print(err)
-    except AssertionError as err:
+    except (RuntimeError, AssertionError) as err:
         print(err)
 
 
@@ -182,7 +178,5 @@ def test_seed_torch_neural_net_classifier(
     # Test the determinism of our package (even if the bitwidth may be too large)
     try:
         concrete_classifier.compile(x_train, configuration=default_configuration, show_mlir=True)
-    except RuntimeError as err:
-        print(err)
-    except AssertionError as err:
+    except (RuntimeError, AssertionError) as err:
         print(err)

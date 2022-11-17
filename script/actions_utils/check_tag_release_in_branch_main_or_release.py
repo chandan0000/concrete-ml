@@ -24,7 +24,7 @@ def main(args):
     # Transform the parsed version to a branch name
     # e.g. 1.0.0-rc.1 => 1.0.x
     to_version = VersionInfo.parse(to_version)
-    to_version = str(to_version.major) + "." + str(to_version.minor) + ".x"
+    to_version = f"{str(to_version.major)}.{str(to_version.minor)}.x"
 
     # Tagged commit for release (to_commit) should be part of the some specific branches.
     branches_to_check = ["main", f"release/{to_version}"]

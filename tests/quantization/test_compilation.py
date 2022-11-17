@@ -53,7 +53,7 @@ class FCSeq(nn.Module):
             nn.init.uniform_(b)
 
         for idx in range(self.n_layers):
-            out_features = in_features if idx == self.n_layers - 1 else in_features
+            out_features = in_features
             layer_name = f"fc{idx}"
             layer = nn.Linear(in_features=in_features, out_features=out_features, bias=False)
             self.feat.add_module(layer_name, layer)
@@ -84,7 +84,7 @@ class FCSeqAddBiasVec(nn.Module):
             nn.init.uniform_(b)
 
         for idx in range(self.n_layers):
-            out_features = in_features if idx == self.n_layers - 1 else in_features
+            out_features = in_features
             layer_name = f"fc{idx}"
             layer = nn.Linear(in_features=in_features, out_features=out_features, bias=False)
             self.feat.add_module(layer_name, layer)

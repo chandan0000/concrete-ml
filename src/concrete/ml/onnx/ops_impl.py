@@ -56,10 +56,11 @@ class ONNXMixedFunction:
         self.non_quant_params: Set[str] = non_quant_params
         bad_non_quant_params = set(non_quant_params).difference(set(signature(function).parameters))
         assert_true(
-            len(bad_non_quant_params) == 0,
+            not bad_non_quant_params,
             f"ONNX function {function.__name__} tagged with invalid integer parameters: "
             ",".join(bad_non_quant_params),
         )
+
         self.function = function  # type: ignore
 
     def __call__(self, *args, **kwargs):
@@ -288,11 +289,7 @@ def numpy_gemm(
         y = y * processed_alpha
 
     if numpy.any(c_prime != 0):
-        if processed_beta == 1:
-            y = y + c_prime
-        else:
-            y = y + processed_beta * c_prime
-
+        y = y + c_prime if processed_beta == 1 else y + processed_beta * c_prime
     return (y,)
 
 
@@ -644,10 +641,7 @@ def numpy_thresholdedrelu(x: numpy.ndarray, *, alpha: float = 1) -> Tuple[numpy.
         Tuple[numpy.ndarray]: Output tensor
     """
 
-    if x > alpha:  # pragma: no cover
-        return (x,)  # pragma: no cover
-
-    return (numpy.zeros_like(x),)  # pragma: no cover
+    return (x, ) if x > alpha else (numpy.zeros_like(x), )
 
 
 def numpy_hardsigmoid(
@@ -1381,7 +1375,7 @@ def numpy_flatten(x: numpy.ndarray, *, axis: int = 1) -> Tuple[numpy.ndarray]:
         result: flattened tensor
     """
     output_shape: Sequence[SupportsIndex]
-    output_shape = (*x.shape[0:axis], numpy.prod(x.shape[axis:]))
+    output_shape = *x.shape[:axis], numpy.prod(x.shape[axis:])
 
     return (numpy.reshape(x, output_shape),)
 
@@ -1491,7 +1485,11 @@ def numpy_reduce_sum(
         numpy.ndarray: Output reduced tensor.
     """
 
-    assert_true(keepdims in [0, 1], f"keepdims parameter should either be 0 or 1. Got {keepdims}")
+    assert_true(
+        keepdims in {0, 1},
+        f"keepdims parameter should either be 0 or 1. Got {keepdims}",
+    )
+
 
     assert_true(
         axes is None or isinstance(axes, numpy.ndarray),
@@ -1537,8 +1535,11 @@ def numpy_brevitas_quant(
     """
 
     assert_true(rounding_mode == "ROUND", "Only rounding quantization is supported for Brevitas")
-    assert_true(signed in (1, 0), "Signed flag in Brevitas quantizer must be 0/1")
-    assert_true(narrow in (1, 0), "Narrow range flag in Brevitas quantizer must be 0/1")
+    assert_true(signed in {1, 0}, "Signed flag in Brevitas quantizer must be 0/1")
+    assert_true(
+        narrow in {1, 0}, "Narrow range flag in Brevitas quantizer must be 0/1"
+    )
+
 
     # Compute the re-scaled values
     y = x / scale

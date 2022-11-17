@@ -264,7 +264,7 @@ class QuantizedOp:
         *inputs: Union[QuantizedArray, numpy.ndarray],
         calibrate: bool,
         quantize_actual_values: bool,
-    ):  # pylint: disable=too-many-branches
+    ):    # pylint: disable=too-many-branches
         """Retrieve all the inputs of an operator in the computational graph.
 
         This helper method will prepare a list of inputs to an operator. Inputs can be variables,
@@ -312,14 +312,12 @@ class QuantizedOp:
             # In all other cases we return a QuantizedArray or numpy.array. QuantizedArrays
             # in this case are produced by other ops or inputs. numpy.arrays are produced
             # by initializers
-            if calibrate or not quantize_actual_values:
-                if self.__class__.must_quantize_input(input_idx):
-                    prepared_inputs[input_idx] = constant_val.values
-                else:
-                    prepared_inputs[input_idx] = constant_val
+            if (
+                calibrate or not quantize_actual_values
+            ) and self.__class__.must_quantize_input(input_idx):
+                prepared_inputs[input_idx] = constant_val.values
             else:
                 prepared_inputs[input_idx] = constant_val
-
         num_inputs = len(inputs)
         assert_true(
             num_onnx_inputs >= (num_inputs) + num_provided_constants >= num_required_onnx_inputs,
@@ -466,7 +464,7 @@ class QuantizedOp:
             impl_func = self.impl.function
         else:
             impl_func = self.impl.__func__  # type: ignore
-        outputs = impl_func(*inputs) if not self._has_attr else impl_func(*inputs, **attrs)
+        outputs = impl_func(*inputs, **attrs) if self._has_attr else impl_func(*inputs)
         assert_true(
             isinstance(outputs, tuple),
             f"The output of {impl_func.__name__} needs to be a tuple. Got {outputs}",

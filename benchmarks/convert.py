@@ -96,30 +96,38 @@ def convert_to_new_postgres(
     ).timestamp()
     current_timestamp = datetime.datetime.now().timestamp()
 
-    session_data: Dict[str, Union[Dict, List]] = {}
-
-    # Create machine
-    session_data["machine"] = {
-        "machine_name": progress["machine"]["name"] if machine_name is None else machine_name,
-        "machine_specs": {
-            "cpu": find_element_in_zip(progress["machine"]["specs"], "CPU"),
-            "ram": find_element_in_zip(progress["machine"]["specs"], "RAM"),
-            "os": find_element_in_zip(progress["machine"]["specs"], "OS"),
-        },
+    session_data: Dict[str, Union[Dict, List]] = {
+        "machine": {
+            "machine_name": progress["machine"]["name"]
+            if machine_name is None
+            else machine_name,
+            "machine_specs": {
+                "cpu": find_element_in_zip(
+                    progress["machine"]["specs"], "CPU"
+                ),
+                "ram": find_element_in_zip(
+                    progress["machine"]["specs"], "RAM"
+                ),
+                "os": find_element_in_zip(progress["machine"]["specs"], "OS"),
+            },
+        }
     }
+
 
     # Create experiments
     experiments = []
     for experiment_name, experiment_values in progress["targets"].items():
         model_name, dataset_name, hyper_args = benchmark_name_to_config(experiment_name)
-        experiment_representation = {}
-        experiment_representation["experiment_name"] = experiment_name
-        experiment_representation["experiment_metadata"] = {
-            "model_name": model_name,
-            "dataset_name": dataset_name,
-            "cml_version": version("concrete-ml"),
-            "cnp_version": version("concrete-numpy"),
+        experiment_representation = {
+            "experiment_name": experiment_name,
+            "experiment_metadata": {
+                "model_name": model_name,
+                "dataset_name": dataset_name,
+                "cml_version": version("concrete-ml"),
+                "cnp_version": version("concrete-numpy"),
+            },
         }
+
         experiment_representation["experiment_metadata"].update(hyper_args)
         experiment_representation["git_hash"] = current_git_hash
         experiment_representation["git_timestamp"] = current_git_hash_timestamp

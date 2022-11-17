@@ -86,7 +86,7 @@ def get_equivalent_numpy_forward(
     """
     if check_model:
         checker.check_model(onnx_model)
-    required_onnx_operators = set(get_op_name(node) for node in onnx_model.graph.node)
+    required_onnx_operators = {get_op_name(node) for node in onnx_model.graph.node}
     unsupported_operators = required_onnx_operators - IMPLEMENTED_ONNX_OPS
 
     if len(unsupported_operators) > 0:

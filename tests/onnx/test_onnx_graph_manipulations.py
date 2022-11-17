@@ -62,21 +62,23 @@ def test_remove_unused_constant_nodes():
     onnx.checker.check_model(model_def)
 
     # Check the used constant is seen as a graph output and the unused constant is not
-    assert "used_constant" in set(out.name for out in model_def.graph.output)
-    assert "unused_constant" not in set(out.name for out in model_def.graph.output)
+    assert "used_constant" in {out.name for out in model_def.graph.output}
+    assert "unused_constant" not in {out.name for out in model_def.graph.output}
 
     # Check both constants are in the graph nodes
-    assert "used_constant" in set(node.output[0] for node in model_def.graph.node)
-    assert "unused_constant" in set(node.output[0] for node in model_def.graph.node)
+    assert "used_constant" in {node.output[0] for node in model_def.graph.node}
+    assert "unused_constant" in {node.output[0] for node in model_def.graph.node}
 
     remove_unused_constant_nodes(model_def)
 
     onnx.checker.check_model(model_def)
 
     # Check the used constant is seen as a graph output and the unused constant is not
-    assert "used_constant" in set(out.name for out in model_def.graph.output)
-    assert "unused_constant" not in set(out.name for out in model_def.graph.output)
+    assert "used_constant" in {out.name for out in model_def.graph.output}
+    assert "unused_constant" not in {out.name for out in model_def.graph.output}
 
     # Check that used_constant is still in the graph while unused_constant has been removed
-    assert "used_constant" in set(node.output[0] for node in model_def.graph.node)
-    assert "unused_constant" not in set(node.output[0] for node in model_def.graph.node)
+    assert "used_constant" in {node.output[0] for node in model_def.graph.node}
+    assert "unused_constant" not in {
+        node.output[0] for node in model_def.graph.node
+    }

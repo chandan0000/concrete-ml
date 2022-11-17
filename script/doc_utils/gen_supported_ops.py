@@ -27,18 +27,20 @@ def main(file_to_update):
     for line in lines:
         if line.startswith(CONVERSION_OPS_BEGIN_HEADER):
             keep_line = False
-            newlines.append(line)
-            newlines.append("\n")
-            newlines.append("<!--- do not edit, auto generated part by `make supported_ops` -->\n")
-            newlines.append("\n")
+            newlines.extend(
+                (
+                    line,
+                    "\n",
+                    "<!--- do not edit, auto generated part by `make supported_ops` -->\n",
+                    "\n",
+                )
+            )
+
             newlines.extend(f"- {op}\n" for op in supported_ops)
         elif line.startswith(CONVERSION_OPS_END_HEADER):
             keep_line = True
-            newlines.append("\n")
-            newlines.append(line)
-        elif line.startswith("<!---"):
-            pass
-        else:
+            newlines.extend(("\n", line))
+        elif not line.startswith("<!---"):
             assert f"{SCRIPT_NAME}" not in line, (
                 f"Error: not expected to have '{SCRIPT_NAME}' at line {line} "
                 f"of {file_to_update}"

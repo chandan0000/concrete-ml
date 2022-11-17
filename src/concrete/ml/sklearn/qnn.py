@@ -357,7 +357,7 @@ class NeuralNetClassifier(
 
         # If no parameters are passed just returns
         # Used to load the model class from json
-        if len(args) == 0 and len(kwargs) == 0:
+        if not args and not kwargs:
             return
         # A helper for users so they don't need to import torch directly
         args_to_convert_to_tensor = ["criterion__weight"]
@@ -452,7 +452,7 @@ class NeuralNetRegressor(
         super().__init__()
         # If no parameters are passed just return
         # Used to load the model class from json
-        if len(args) == 0 and len(kwargs) == 0:
+        if not args and not kwargs:
             return
 
         kwargs.pop("n_bits", None)

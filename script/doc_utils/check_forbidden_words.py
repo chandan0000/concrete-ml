@@ -86,21 +86,13 @@ def process_file(file_str: str, do_open_problematic_files=False):
 
     with open(file_path, "r", encoding="utf-8") as f:
 
-        nline = 0
-
-        for line in f:
+        for nline, line in enumerate(f):
 
             line = line.rstrip()
 
             for forbidden_word, exceptions in forbidden_word_list:
 
-                stop = False
-
-                for exception in exceptions:
-                    if exception in line:
-                        stop = True
-                        break
-
+                stop = any(exception in line for exception in exceptions)
                 if stop:
                     continue
 
@@ -120,8 +112,6 @@ def process_file(file_str: str, do_open_problematic_files=False):
 
                     nb_errors += 1 - int(local_check)
                     is_everything_ok &= local_check
-
-            nline += 1
 
     if not is_everything_ok and do_open_problematic_files:
         os.system(f"subl {file_path}")

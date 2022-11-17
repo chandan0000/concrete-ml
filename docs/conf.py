@@ -24,7 +24,7 @@ copyright = "2022, Zama"
 author = "Zama"
 description = "Zama Concrete-ML"
 root_url = os.environ.get("DOC_ROOT_URL", "/concrete-ml")
-root_url = root_url if root_url.endswith("/") else root_url + "/"
+root_url = root_url if root_url.endswith("/") else f"{root_url}/"
 
 # The full version, including alpha/beta/rc tags
 release = "0.5.1"
@@ -126,7 +126,7 @@ html_context = {
     "language": "en",
     "versions_url": "#",
 }
-html_title = "%s Manual" % (project)
+html_title = f"{project} Manual"
 html_show_sphinx = False
 
 # Uncomment for test

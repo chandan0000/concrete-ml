@@ -93,10 +93,11 @@ def keep_following_outputs_discard_others(
     outputs_to_keep_set = set(outputs_to_keep)
 
     graph_outputs = onnx_model.graph.output
-    outputs_value_infos_to_keep = []
-    for output in graph_outputs:
-        if output.name in outputs_to_keep_set:
-            outputs_value_infos_to_keep.append(deepcopy(output))
+    outputs_value_infos_to_keep = [
+        deepcopy(output)
+        for output in graph_outputs
+        if output.name in outputs_to_keep_set
+    ]
 
     n_outputs_to_keep = len(outputs_value_infos_to_keep)
     assert_true(n_outputs_to_keep > 0)
@@ -108,7 +109,7 @@ def keep_following_outputs_discard_others(
     while len(graph_outputs) > n_outputs_to_keep:
         graph_outputs.pop(n_outputs_to_keep)
 
-    assert_true(set(output.name for output in graph_outputs) == outputs_to_keep_set)
+    assert_true({output.name for output in graph_outputs} == outputs_to_keep_set)
 
 
 def remove_node_types(onnx_model: onnx.ModelProto, op_types_to_remove: List[str]):
@@ -122,9 +123,7 @@ def remove_node_types(onnx_model: onnx.ModelProto, op_types_to_remove: List[str]
         ValueError: Wrong replacement by an Identity node.
     """
 
-    op_type_inputs = {}
-    op_type_inputs["input_0"] = "Input"
-
+    op_type_inputs = {"input_0": "Input"}
     # Reference initializer as Constant
     for initializer in onnx_model.graph.initializer:
         op_type_inputs[initializer.name] = "Constant"
@@ -138,12 +137,14 @@ def remove_node_types(onnx_model: onnx.ModelProto, op_types_to_remove: List[str]
         # If the current node type needs to be removed
         if node.op_type in op_types_to_remove:
 
-            # Find the non-constant input
-            non_constant_input = None
-            for input_ in node.input:
-                if op_type_inputs[input_] != "Constant":
-                    non_constant_input = input_
-                    break
+            non_constant_input = next(
+                (
+                    input_
+                    for input_ in node.input
+                    if op_type_inputs[input_] != "Constant"
+                ),
+                None,
+            )
 
             # Check that node.input[0] is not a constant
             if non_constant_input is None:

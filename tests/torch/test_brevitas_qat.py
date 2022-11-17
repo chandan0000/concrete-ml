@@ -108,10 +108,7 @@ class TinyCNN(nn.Module):
             raw_pred = self(data).detach().numpy()
 
             # Get the predicted class id, handle NaNs
-            if numpy.any(numpy.isnan(raw_pred)):
-                output = -1
-            else:
-                output = raw_pred.argmax(1)
+            output = -1 if numpy.any(numpy.isnan(raw_pred)) else raw_pred.argmax(1)
             all_y_pred[idx:endidx] = output
 
             idx += target.shape[0]

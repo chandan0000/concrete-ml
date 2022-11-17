@@ -149,7 +149,7 @@ class QuantizedModule:
             self.quant_layers_dict[output_name][1]
             for output_name in self.ordered_module_output_names
         )
-        output_quantizers = list(
+        return [
             QuantizedArray(
                 output_layer.n_bits,
                 values=None,
@@ -158,8 +158,7 @@ class QuantizedModule:
                 params=output_layer.output_quant_params,
             ).quantizer
             for output_layer in output_layers
-        )
-        return output_quantizers
+        ]
 
     @property
     def onnx_model(self):
@@ -195,11 +194,11 @@ class QuantizedModule:
             if not issubclass(qvalue.dtype.type, numpy.integer)
         )
         assert_true(
-            len(invalid_inputs) == 0,
-            f"Inputs: {', '.join(f'#{val[0]} ({val[1].dtype})' for val in invalid_inputs)} are not "
-            "integer types. Make sure you quantize your input before calling forward.",
+            not invalid_inputs,
+            f"Inputs: {', '.join(f'#{val[0]} ({val[1].dtype})' for val in invalid_inputs)} are not integer types. Make sure you quantize your input before calling forward.",
             ValueError,
         )
+
 
         return self._forward(*qvalues)
 
@@ -246,15 +245,17 @@ class QuantizedModule:
             output = layer(*inputs)
             layer.error_tracker = None
 
-            if len(error_tracker) > 0:
+            if error_tracker:
                 # The error message contains the ONNX tensor name that
                 # triggered this error
-                for input_idx in error_tracker:
-                    bad_qat_ops.append((input_names[input_idx], layer.op_type))
+                bad_qat_ops.extend(
+                    (input_names[input_idx], layer.op_type)
+                    for input_idx in error_tracker
+                )
 
             layer_results[output_name] = output
 
-        if len(bad_qat_ops) > 0:
+        if bad_qat_ops:
             _raise_qat_import_error(bad_qat_ops)
 
         outputs = tuple(

@@ -152,7 +152,7 @@ def get_variable_from_py_file(file_path: Path, var_name: str):
         if match is None:
             break
 
-        variable_values_set.add(match.group(1))
+        variable_values_set.add(match[1])
         start_pos = match.end()
 
     return variable_values_set
@@ -192,7 +192,7 @@ def check_version(args):
         else:
             raise RuntimeError(f"Unsupported file extension: {file_path.suffix}")
 
-    if len(version_str_set) == 0:
+    if not version_str_set:
         raise RuntimeError(f"No versions found in {', '.join(sorted(file_vars_set))}")
     if len(version_str_set) > 1:
         raise RuntimeError(

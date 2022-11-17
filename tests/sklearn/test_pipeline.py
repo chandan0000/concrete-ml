@@ -19,10 +19,11 @@ from concrete.ml.sklearn import NeuralNetClassifier, NeuralNetRegressor
 @pytest.mark.parametrize("model, parameters", classifiers + regressors)
 def test_pipeline_classifiers_regressors(model, parameters, load_data):
     """Tests that classifiers and regressors work well within sklearn pipelines."""
-    if isinstance(model, partial):
-        # Tested in test_pipeline_and_cv_qnn
-        if model.func in [NeuralNetClassifier, NeuralNetRegressor]:
-            return
+    if isinstance(model, partial) and model.func in [
+        NeuralNetClassifier,
+        NeuralNetRegressor,
+    ]:
+        return
 
     x, y = load_data(**parameters)
 

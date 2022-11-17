@@ -147,10 +147,10 @@ class CommonQuant(ExtendedInjector):
     signed = True
 
     @value
-    def quant_type(bit_width):
-        if bit_width is None:
+    def quant_type(self):
+        if self is None:
             return QuantType.FP
-        elif bit_width == 1:
+        elif self == 1:
             return QuantType.BINARY
         else:
             return QuantType.INT
