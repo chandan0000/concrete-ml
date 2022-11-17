@@ -1,4 +1,5 @@
 """Common functions or lists for test files, which can't be put in fixtures."""
+
 from functools import partial
 
 import pytest
@@ -86,10 +87,11 @@ classifiers = [
             "n_informative": 10,
             "n_redundant": 0,
         },
-        id=model.__name__ if not isinstance(model, partial) else None,
+        id=None if isinstance(model, partial) else model.__name__,
     )
     for model in classifier_models
 ]
+
 
 # Get the datasets. The data generation is seeded in load_data.
 # Only LinearRegression supports multi targets
@@ -99,14 +101,15 @@ regressors = [
         model,
         {
             "dataset": "regression",
-            "strictly_positive": model in [GammaRegressor, PoissonRegressor, TweedieRegressor],
+            "strictly_positive": model
+            in [GammaRegressor, PoissonRegressor, TweedieRegressor],
             "n_samples": 200,
             "n_features": 10,
             "n_informative": 10,
             "n_targets": 2 if model == LinearRegression else 1,
             "noise": 0,
         },
-        id=model.__name__ if not isinstance(model, partial) else None,
+        id=None if isinstance(model, partial) else model.__name__,
     )
     for model in regressor_models
 ]

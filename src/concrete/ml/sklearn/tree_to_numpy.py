@@ -66,9 +66,10 @@ def tree_to_numpy(
     assert output_n_bits is not None
 
     assert_true(
-        framework in ["xgboost", "sklearn"],
+        framework in {"xgboost", "sklearn"},
         f"framework={framework} is not supported. It must be either 'xgboost' or 'sklearn'",
     )
+
 
     # Silence hummingbird warnings
     warnings.filterwarnings("ignore")
@@ -186,13 +187,12 @@ def tree_to_numpy(
                 "Zero point is not 0. Symmetric signed quantization must work.",
             )
             init_tensor = q_y.qvalues
-        else:
-            if framework == "xgboost":
-                # xgboost uses "<" operator thus we must round up.
-                init_tensor = numpy.ceil(init_tensor)
-            elif framework == "sklearn":
-                # sklearn trees use ">" operator thus we must round down.
-                init_tensor = numpy.floor(init_tensor)
+        elif framework == "sklearn":
+            # sklearn trees use ">" operator thus we must round down.
+            init_tensor = numpy.floor(init_tensor)
+        elif framework == "xgboost":
+            # xgboost uses "<" operator thus we must round up.
+            init_tensor = numpy.ceil(init_tensor)
         new_initializer = numpy_helper.from_array(init_tensor.astype(int), initializer.name)
         onnx_model.graph.initializer[i].CopyFrom(new_initializer)
 

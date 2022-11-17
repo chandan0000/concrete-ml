@@ -179,47 +179,52 @@ def onnx_avgpool_compute_norm_const(
             average pool computation for each valid kernel position
     """
     # Handle the tensorflow pooling mode
-    if ceil_mode == 1:
-        n_in_channels = input_shape[1]
-        kernel = numpy.ones(
-            (n_in_channels, 1, kernel_shape[0], kernel_shape[1]),
-            dtype=numpy.uint8,
-        )
-
-        # Tensorflow (and ONNX pool with ceil_mode==1) allow the kernel of the pooling op
-        # to be placed in positions that include out-of-bounds indices.
-        # For example an input of size 2 containing values V,
-        # with padding P of 1 to the left and right:
-        #      P V V P
-        # The pooling of size 2 can be applied at positions: 0,1,2,3:
-        #    (P+V)/2   (V+V)/2  (V+P)/2   P
-        # Even though at position 3 it is out of bounds.
-
-        # When the kernel is applied with out of bounds indices, these are ignored
-        # and the averaging is done counting only the valid values (P or V) in its support
-
-        # We thus need to find the number of valid indices for each kernel position
-
-        # Compute the padded input tensor in Floor mode (PyTorch)
-        pool_pads_floor = compute_onnx_pool_padding(input_shape, kernel_shape, pads, strides, 0)
-
-        # Compute it again in tensorflow mode
-        pool_pads_ceil = compute_onnx_pool_padding(input_shape, kernel_shape, pads, strides, 1)
-
-        # Create a tensor of ones for PyTorch mode and one of zeros for TF mode
-        padded_flr = numpy_onnx_pad(numpy.ones(input_shape, dtype=numpy.int64), pool_pads_floor, 1)
-        padded_ceil = numpy_onnx_pad(numpy.zeros(input_shape, dtype=numpy.int64), pool_pads_ceil, 0)
-
-        # Initialize a final tensor that has 1s in valid indices and 0s in invalid ones
-        padded_ceil[:, :, 0 : padded_flr.shape[2], 0 : padded_flr.shape[3]] = 1
-
-        # Compute the sum of valid indices in each kernel position
-        norm_const = cnp_conv(
-            padded_ceil, kernel, None, [0, 0, 0, 0], strides, None, None, n_in_channels
-        )
-    else:
+    if ceil_mode != 1:
         # For the PyTorch mode, only positions with all valid indices are used so
         # the averaging is done over the number of cells in the kernel
-        norm_const = numpy.prod(kernel_shape)
+        return numpy.prod(kernel_shape)
 
-    return norm_const
+    n_in_channels = input_shape[1]
+    kernel = numpy.ones(
+        (n_in_channels, 1, kernel_shape[0], kernel_shape[1]),
+        dtype=numpy.uint8,
+    )
+
+    # Tensorflow (and ONNX pool with ceil_mode==1) allow the kernel of the pooling op
+    # to be placed in positions that include out-of-bounds indices.
+    # For example an input of size 2 containing values V,
+    # with padding P of 1 to the left and right:
+    #      P V V P
+    # The pooling of size 2 can be applied at positions: 0,1,2,3:
+    #    (P+V)/2   (V+V)/2  (V+P)/2   P
+    # Even though at position 3 it is out of bounds.
+
+    # When the kernel is applied with out of bounds indices, these are ignored
+    # and the averaging is done counting only the valid values (P or V) in its support
+
+    # We thus need to find the number of valid indices for each kernel position
+
+    # Compute the padded input tensor in Floor mode (PyTorch)
+    pool_pads_floor = compute_onnx_pool_padding(input_shape, kernel_shape, pads, strides, 0)
+
+    # Compute it again in tensorflow mode
+    pool_pads_ceil = compute_onnx_pool_padding(input_shape, kernel_shape, pads, strides, 1)
+
+    # Create a tensor of ones for PyTorch mode and one of zeros for TF mode
+    padded_flr = numpy_onnx_pad(numpy.ones(input_shape, dtype=numpy.int64), pool_pads_floor, 1)
+    padded_ceil = numpy_onnx_pad(numpy.zeros(input_shape, dtype=numpy.int64), pool_pads_ceil, 0)
+
+    # Initialize a final tensor that has 1s in valid indices and 0s in invalid ones
+    padded_ceil[:, :, 0 : padded_flr.shape[2], 0 : padded_flr.shape[3]] = 1
+
+        # Compute the sum of valid indices in each kernel position
+    return cnp_conv(
+        padded_ceil,
+        kernel,
+        None,
+        [0, 0, 0, 0],
+        strides,
+        None,
+        None,
+        n_in_channels,
+    )

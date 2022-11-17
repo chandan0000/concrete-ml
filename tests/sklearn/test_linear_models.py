@@ -164,7 +164,7 @@ def get_datasets_regression(model_class):
 
 def get_datasets_classification(model_class):
     """Return tests to apply to a classification model."""
-    classifier_datasets = [
+    return [
         pytest.param(
             model_class,
             {
@@ -198,8 +198,6 @@ def get_datasets_classification(model_class):
             id=f"make_classification_features_14_classes_4_{model_class.__name__}",
         ),
     ]
-
-    return classifier_datasets
 
 
 multiple_models_datasets: List[Any] = []

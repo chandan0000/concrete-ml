@@ -19,11 +19,11 @@ class _TorchReduceSum(nn.Module):
 
     def forward(self, x):
         """Forward pass."""
-        if self.dim is not None:
-            torch_sum = x.sum(dim=self.dim, keepdim=self.keepdim)
-        else:
-            torch_sum = x.sum()
-        return torch_sum
+        return (
+            x.sum(dim=self.dim, keepdim=self.keepdim)
+            if self.dim is not None
+            else x.sum()
+        )
 
 
 def get_numpy_input_and_inputset(n_values, max_value, n_samples=1, signed=False):
@@ -233,11 +233,11 @@ def generate_wrong_parameters_and_id():
         n_samples = wrong_parameter.get("n_samples", 1)
         keepdims = wrong_parameter.get("keepdims", True)
         one_dim = wrong_parameter.get("one_dim", False)
-        axes = wrong_parameter.get("axes", 1) if not one_dim else 0
+        axes = 0 if one_dim else wrong_parameter.get("axes", 1)
 
         pytest_id = "reduce_sum_wrong_parameters"
 
-        pytest_id += f"_{wrong_parameter_name}_{wrong_parameter_value}" + "_in_FHE_(VL)"
+        pytest_id += f"_{wrong_parameter_name}_{wrong_parameter_value}_in_FHE_(VL)"
 
         parameters = (n_values, n_samples, keepdims, axes, one_dim)
         yield parameters, pytest_id

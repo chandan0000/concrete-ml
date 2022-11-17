@@ -15,10 +15,11 @@ from concrete.ml.sklearn import NeuralNetClassifier, NeuralNetRegressor
 @pytest.mark.parametrize("model, parameters", classifiers + regressors)
 def test_double_fit(model, parameters, load_data):
     """Tests that calling fit multiple times gives the same results"""
-    if isinstance(model, partial):
-        # Works differently for NeuralNetClassifier or NeuralNetRegressor
-        if model.func in [NeuralNetClassifier, NeuralNetRegressor]:
-            return
+    if isinstance(model, partial) and model.func in [
+        NeuralNetClassifier,
+        NeuralNetRegressor,
+    ]:
+        return
 
     x, y = load_data(**parameters)
 

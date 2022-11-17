@@ -16,10 +16,11 @@ from concrete.ml.sklearn import NeuralNetClassifier, NeuralNetRegressor
 @pytest.mark.parametrize("model, parameters", classifiers + regressors)
 def test_pandas(model, parameters, load_data):
     """Tests that we can use Pandas for inputs to fit"""
-    if isinstance(model, partial):
-        # Works differently for NeuralNetClassifier or NeuralNetRegressor
-        if model.func in [NeuralNetClassifier, NeuralNetRegressor]:
-            return
+    if isinstance(model, partial) and model.func in [
+        NeuralNetClassifier,
+        NeuralNetRegressor,
+    ]:
+        return
 
     x, y = load_data(**parameters)
 
@@ -105,10 +106,11 @@ def test_pandas_qnn(load_data):
 )
 def test_failure_bad_param(model, bad_value, expected_error):
     """Check our checks see if ever the Panda dataset is not correct."""
-    if isinstance(model, partial):
-        # Works differently for NeuralNetClassifier or NeuralNetRegressor
-        if model.func in [NeuralNetClassifier, NeuralNetRegressor]:
-            return
+    if isinstance(model, partial) and model.func in [
+        NeuralNetClassifier,
+        NeuralNetRegressor,
+    ]:
+        return
 
     dic = {
         "Col One": [1, 2, bad_value, 3],

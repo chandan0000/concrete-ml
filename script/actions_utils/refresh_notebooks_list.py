@@ -1,4 +1,5 @@
 """Update the list of available notebooks for the refresh_one_notebook GitHib action."""
+
 import argparse
 from pathlib import Path
 
@@ -9,21 +10,18 @@ SMALL_TAB = "  "
 TAB = SMALL_TAB * 4
 
 # Header start and end for updating the current list of available notebooks
-NOTEBOOKS_LIST_HEADER_START = (
-    TAB + f"# --- {SCRIPT_NAME}: refresh list of notebooks currently available [START] ---"
-)
-NOTEBOOKS_LIST_HEADER_END = (
-    TAB + f"# --- {SCRIPT_NAME}: refresh list of notebooks currently available [END] ---"
-)
+NOTEBOOKS_LIST_HEADER_START = f"{TAB}# --- {SCRIPT_NAME}: refresh list of notebooks currently available [START] ---"
+
+NOTEBOOKS_LIST_HEADER_END = f"{TAB}# --- {SCRIPT_NAME}: refresh list of notebooks currently available [END] ---"
+
 
 # Header start and end for updating the current path list of available notebooks
 NOTEBOOK_PATHS_LIST_HEADER_START = (
     SMALL_TAB
     + f"# --- {SCRIPT_NAME}: refresh list of notebook paths currently available [START] ---"
 )
-NOTEBOOK_PATHS_LIST_HEADER_END = (
-    SMALL_TAB + f"# --- {SCRIPT_NAME}: refresh list of notebook paths currently available [END] ---"
-)
+NOTEBOOK_PATHS_LIST_HEADER_END = f"{SMALL_TAB}# --- {SCRIPT_NAME}: refresh list of notebook paths currently available [END] ---"
+
 
 # Additional message indicating not to edit the headers
 NO_EDIT_MESSAGE = "# --- do not edit, auto generated part by `make refresh_notebooks_list` ---\n"
@@ -65,21 +63,24 @@ def main(file_to_update):
             # The following lines should not be kept until the header's end is found
             keep_line = False
 
-            # Keep the header line
-            newlines.append(line)
-
-            # Add the "no edit" warning message
-            newlines.append(TAB + NO_EDIT_MESSAGE)
-
-            # Append the complete list of current available notebooks with a specific format
-            newlines.append(TAB + 'description: "Notebook file name only in: ' + r"\n" + "\n")
             newlines.extend(
-                TAB + f"- {notebook_path.stem} " + r"\n" + "\n"
+                (
+                    line,
+                    TAB + NO_EDIT_MESSAGE,
+                    TAB
+                    + 'description: "Notebook file name only in: '
+                    + r"\n"
+                    + "\n",
+                )
+            )
+
+            newlines.extend(
+                f"{TAB}- {notebook_path.stem} " + r"\n" + "\n"
                 for notebook_path in sorted(notebook_paths)
             )
+
             newlines.append(TAB + '"\n')
 
-        # Else, if the current line is the "notebook path list" header start, update the list
         elif line.startswith(NOTEBOOK_PATHS_LIST_HEADER_START):
 
             assert current_header is None, (
@@ -93,19 +94,14 @@ def main(file_to_update):
             # The following lines should not be kept until the header's end is found
             keep_line = False
 
-            # Keep the header line
-            newlines.append(line)
-
-            # Add the "no edit" warning message
-            newlines.append(SMALL_TAB + NO_EDIT_MESSAGE)
-
+            newlines.extend((line, SMALL_TAB + NO_EDIT_MESSAGE))
             # Append the complete list of current available notebook paths with a specific format
             newlines.extend(
-                SMALL_TAB + f"{notebook_path.stem}: " + f'"{notebook_path}" \n'
+                f"{SMALL_TAB}{notebook_path.stem}: " + f'"{notebook_path}" \n'
                 for notebook_path in sorted(notebook_paths)
             )
 
-        # Else, if the current line is a header end, stop the update
+
         elif line.startswith(NOTEBOOKS_LIST_HEADER_END):
 
             # Make sure the last header found is the header for refreshing the notebook list
@@ -140,13 +136,7 @@ def main(file_to_update):
             keep_line = True
             newlines.append(line)
 
-        # Else, if the current line is a comment, ignore it
-        elif line.startswith(TAB + "# ---"):
-            pass
-
-        # Else, make sure the current line is correctly outside all header sections and then proceed
-        # to the next line
-        else:
+        elif not line.startswith(f"{TAB}# ---"):
             assert (
                 f"{SCRIPT_NAME}" not in line
             ), f"'{SCRIPT_NAME}' at line {line} of {file_to_update} is not expected."

@@ -114,7 +114,7 @@ def main(args):
     to_commit = repo.commit(args.to_ref)
     log_msg(f"To commit: {to_commit}")
 
-    to_tag = sha1_to_tags.get(to_commit.hexsha, None)
+    to_tag = sha1_to_tags.get(to_commit.hexsha)
     if to_tag is None:
         raise_exception_or_print_warning(
             is_error=args.to_ref_must_have_tag,
@@ -141,10 +141,11 @@ def main(args):
         }
         log_msg(f"All release versions {all_release_version_infos}")
 
-        versions_before_project_version = [
-            version_info for version_info in all_release_version_infos if version_info < to_version
-        ]
-        if len(versions_before_project_version) > 0:
+        if versions_before_project_version := [
+            version_info
+            for version_info in all_release_version_infos
+            if version_info < to_version
+        ]:
             highest_version_before_current_version = max(versions_before_project_version)
             highest_version_tag = all_release_version_infos[highest_version_before_current_version]
             from_commit = highest_version_tag.commit
@@ -173,7 +174,7 @@ def main(args):
             ),
         )
 
-    ancestor_tag = sha1_to_tags.get(ancestor_commit.hexsha, None)
+    ancestor_tag = sha1_to_tags.get(ancestor_commit.hexsha)
     # The initial repo commit is allowed to not have a tag when generating changelogs
     # If the ancestor has no tag and it's not the repo initial commit
     if ancestor_tag is None and not from_commit_is_initial_commit:

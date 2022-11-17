@@ -90,7 +90,7 @@ def check_onnx_file_dump(model, parameters, load_data, str_expected, default_con
     onnx_model = model.onnx_model
 
     # Save locally on disk, if one wants to have a look
-    onnx.save(onnx_model, "/tmp/" + model_name + ".onnx")
+    onnx.save(onnx_model, f"/tmp/{model_name}.onnx")
 
     # Remove initializers, since they change from one seed to the other
     if model_name in [
@@ -386,11 +386,7 @@ def test_dump(
 }""",
     }
 
-    if isinstance(model, partial):
-        model_class = model.func
-    else:
-        model_class = model
-
-    str_expected = expected_strings[model_class] if model_class in expected_strings else ""
+    model_class = model.func if isinstance(model, partial) else model
+    str_expected = expected_strings.get(model_class, "")
 
     check_onnx_file_dump(model, parameters, load_data, str_expected, default_configuration)

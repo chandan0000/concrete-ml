@@ -63,9 +63,7 @@ def main(args):
         if "git" in pkg_infos:
             extras_spec = format_extras(pkg_infos.get("extras", []))
             git_rev = pkg_infos.get("rev", "")
-            rev_spec = ""
-            if git_rev != "":
-                rev_spec = f"@{git_rev}"
+            rev_spec = f"@{git_rev}" if git_rev != "" else ""
             pip_install_spec = f"git+{pkg_infos['git']}{rev_spec}#egg={pkg_name}{extras_spec}"
         else:
             # plain version case

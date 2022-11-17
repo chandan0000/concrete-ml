@@ -69,21 +69,19 @@ def process_file(file_str: str, args=None):
                 else:
                     processed_content += line
 
+            elif admonition != "" and line.startswith("```"):
+                # Closing admonition
+                admonition = ""
+                processed_content += "{% endhint %}"
+
+            elif line.startswith("```{"):
+                # Starting admonition
+                admonition = line.replace("```{", "").replace("}", "")
+                gitbook_admonition = sphinx_to_gitbook_admonition[admonition]
+                processed_content += "{% hint style='" + gitbook_admonition + "' %}"
+
             else:
-                # Sphinx to Gitbook
-                if admonition != "" and line.startswith("```"):
-                    # Closing admonition
-                    admonition = ""
-                    processed_content += "{% endhint %}"
-
-                elif line.startswith("```{"):
-                    # Starting admonition
-                    admonition = line.replace("```{", "").replace("}", "")
-                    gitbook_admonition = sphinx_to_gitbook_admonition[admonition]
-                    processed_content += "{% hint style='" + gitbook_admonition + "' %}"
-
-                else:
-                    processed_content += line
+                processed_content += line
 
             processed_content += "\n"
 

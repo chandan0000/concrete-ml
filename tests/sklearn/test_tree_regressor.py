@@ -13,7 +13,7 @@ from concrete.ml.sklearn import DecisionTreeRegressor, RandomForestRegressor, XG
 def get_datasets_regression(model):
     """Return tests to apply to a regression model."""
 
-    regression_datasets = [
+    return [
         pytest.param(
             model,
             {
@@ -54,8 +54,6 @@ def get_datasets_regression(model):
             id=f"make_regression_features_14_informative_14_targets_2_{model.__name__}",
         ),
     ]
-
-    return regression_datasets
 
 
 regressor_model_classes = [DecisionTreeRegressor, RandomForestRegressor, XGBRegressor]

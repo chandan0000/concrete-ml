@@ -1,4 +1,5 @@
 """Utils to interpret an ONNX model with numpy."""
+
 # Utils to interpret an ONNX model with numpy.
 
 
@@ -206,10 +207,13 @@ ONNX_COMPARISON_OPS_TO_NUMPY_IMPL_BOOL: Dict[str, Callable[..., Tuple[numpy.ndar
 }
 
 # All numpy operators used in QuantizedOps
-ONNX_OPS_TO_NUMPY_IMPL.update(ONNX_COMPARISON_OPS_TO_NUMPY_IMPL_FLOAT)
+ONNX_OPS_TO_NUMPY_IMPL |= ONNX_COMPARISON_OPS_TO_NUMPY_IMPL_FLOAT
 
 # All numpy operators used for tree-based models
-ONNX_OPS_TO_NUMPY_IMPL_BOOL = {**ONNX_OPS_TO_NUMPY_IMPL, **ONNX_COMPARISON_OPS_TO_NUMPY_IMPL_BOOL}
+ONNX_OPS_TO_NUMPY_IMPL_BOOL = (
+    ONNX_OPS_TO_NUMPY_IMPL | ONNX_COMPARISON_OPS_TO_NUMPY_IMPL_BOOL
+)
+
 
 
 IMPLEMENTED_ONNX_OPS = set(ONNX_OPS_TO_NUMPY_IMPL.keys())
@@ -264,5 +268,5 @@ def execute_onnx_with_numpy(
         attributes = {attribute.name: get_attribute(attribute) for attribute in node.attribute}
         outputs = ONNX_OPS_TO_NUMPY_IMPL_BOOL[node.op_type](*curr_inputs, **attributes)
 
-        node_results.update(zip(node.output, outputs))
+        node_results |= zip(node.output, outputs)
     return tuple(node_results[output.name] for output in graph.output)

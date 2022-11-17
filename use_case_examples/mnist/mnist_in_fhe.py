@@ -194,20 +194,10 @@ def main():
     criterion = nn.CrossEntropyLoss()
     torch.autograd.set_detect_anomaly(True)
 
-    # Options: the most important ones
-    epochs = 1
     sparsity = 4
     quantization_bits = 2
     do_test_in_fhe = True
     do_training = True
-    show_mlir = False
-
-    # Options: can be changed
-    lr = 0.02
-    gamma = 0.33
-    test_data_length_reduced = 2  # This is notably the length of the computation in FHE
-    test_data_length_full = 10000
-
     # Options: no real reason to change
     batch_size = 32
     test_batch_size = 32
@@ -231,8 +221,8 @@ def main():
 
     if use_cuda:
         cuda_kwargs = {"num_workers": 1, "pin_memory": True, "shuffle": True}
-        train_kwargs.update(cuda_kwargs)
-        test_kwargs.update(cuda_kwargs)
+        train_kwargs |= cuda_kwargs
+        test_kwargs |= cuda_kwargs
 
     # Manage dataset
     train_loader, test_loader = manage_dataset(train_kwargs, test_kwargs)
@@ -250,10 +240,15 @@ def main():
 
     if do_training:
         print("\n1. Training")
+        # Options: can be changed
+        lr = 0.02
         optimizer = optim.Adam(model.parameters(), lr=lr, weight_decay=0.0001)
+        gamma = 0.33
         scheduler = StepLR(optimizer, step_size=1, gamma=gamma)
         test_loss = 1e10
 
+        # Options: the most important ones
+        epochs = 1
         for epoch in range(1, epochs + 1):
             train(model, device, train_loader, optimizer, epoch, criterion)
             cur_loss = test(model, device, test_loader, criterion)
@@ -297,6 +292,11 @@ def main():
 
         accuracy = {}
         current_index = 3
+
+        show_mlir = False
+
+        test_data_length_reduced = 2  # This is notably the length of the computation in FHE
+        test_data_length_full = 10000
 
         for use_virtual_lib, use_full_dataset in [(True, True), (True, False), (False, False)]:
             test_data_length = (

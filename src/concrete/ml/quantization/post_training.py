@@ -80,14 +80,13 @@ class ONNXConverter:
                 "model_outputs": max(DEFAULT_MODEL_BITS, n_bits),
             }
 
-        # If model_inputs or model_outputs are not given, we consider a default value
         elif isinstance(n_bits, Dict):
             n_bits_dict = {
                 "model_inputs": DEFAULT_MODEL_BITS,
                 "model_outputs": max(DEFAULT_MODEL_BITS, n_bits["op_inputs"]),
             }
 
-            n_bits_dict.update(n_bits)
+            n_bits_dict |= n_bits
 
         assert_true(
             n_bits_dict["model_outputs"] >= n_bits_dict["op_inputs"],
@@ -280,17 +279,21 @@ class ONNXConverter:
             # Constant inputs
             curr_cst_inputs = {}
             for input_idx, (input_name, value) in enumerate(curr_inputs.items()):
-                if not (input_name in self.quant_params or input_name in constants):
+                if (
+                    input_name not in self.quant_params
+                    and input_name not in constants
+                ):
                     continue
 
                 # Initializers are ndarray
                 assert isinstance(value, numpy.ndarray) or numpy.isscalar(value)
 
                 curr_cst_inputs[input_idx] = (
-                    value
-                    if not quantized_op_class.must_quantize_input(input_idx)
-                    else self._process_initializer(self.n_bits_op_weights, value)
+                    self._process_initializer(self.n_bits_op_weights, value)
+                    if quantized_op_class.must_quantize_input(input_idx)
+                    else value
                 )
+
 
             has_variable_inputs = (len(curr_inputs) - len(curr_cst_inputs)) > 0
 
@@ -529,11 +532,10 @@ class PostTrainingAffineQuantization(ONNXConverter):
         else:
             n_bits = self.n_bits_op_inputs
 
-        opts = QuantizationOptions(
+        return QuantizationOptions(
             n_bits,
             is_signed=is_signed,
         )
-        return opts
 
     @staticmethod
     def _check_distribution_is_symmetric_around_zero(values: numpy.ndarray) -> bool:
@@ -592,8 +594,7 @@ class PostTrainingQATImporter(ONNXConverter):
             numpy.ndarray: calibration data for the following operators
         """
 
-        layer_output = quantized_op.calibrate(*calibration_data)
-        return layer_output
+        return quantized_op.calibrate(*calibration_data)
 
     def _process_initializer(self, n_bits: int, values: Union[numpy.ndarray, QuantizedArray]):
         """Process an already quantized weight tensor.
@@ -637,5 +638,4 @@ class PostTrainingQATImporter(ONNXConverter):
         else:
             n_bits = self.n_bits_op_inputs
 
-        opts = QuantizationOptions(n_bits, is_signed=True, is_qat=True)
-        return opts
+        return QuantizationOptions(n_bits, is_signed=True, is_qat=True)

@@ -133,10 +133,9 @@ def test_xgb_classifier(
     WARNING: Increasing the number of trees will increase the compilation / inference
         time and risk of out-of-memory errors.
     """
-    if not is_weekly_option:
-        if skip_if_not_weekly:
-            # Skip long tests
-            return
+    if not is_weekly_option and skip_if_not_weekly:
+        # Skip long tests
+        return
 
     if not use_virtual_lib and is_vl_only_option:
         print("Warning, skipping non VL tests")
@@ -190,16 +189,7 @@ def test_xgb_classifier_grid_search(load_data):
 # Regressor
 
 
-@pytest.mark.parametrize(
-    "hyperparameters",
-    [
-        pytest.param({key: value}, id=f"{key}={value}")
-        for key, values in PARAMS_XGB.items()
-        for value in values
-        if not (key == "max_delta_step" and value != 0)  # type: ignore
-        # R2 score is too low for max_delta_step if different from 0.
-    ],
-)
+@pytest.mark.parametrize("hyperparameters", [pytest.param({key: value}, id=f"{key}={value}") for key, values in PARAMS_XGB.items() for value in values if key != "max_delta_step" or value == 0])
 def test_xgb_regressor_hyperparameters(hyperparameters, load_data):
     """Test that the hyperparameters are valid."""
 
@@ -287,10 +277,9 @@ def test_xgb_regressor(
     WARNING: Increasing the number of trees will increase the compilation / inference
         time and risk of out-of-memory errors.
     """
-    if not is_weekly_option:
-        if skip_if_not_weekly:
-            # Skip long tests
-            return
+    if not is_weekly_option and skip_if_not_weekly:
+        # Skip long tests
+        return
 
     if not use_virtual_lib and is_vl_only_option:
         print("Warning, skipping non VL tests")

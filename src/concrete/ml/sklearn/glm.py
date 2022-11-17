@@ -282,9 +282,10 @@ class TweedieRegressor(_GeneralizedLinearRegressor):
         )
 
         assert_true(
-            link in ["auto", "log", "identity"],
+            link in {"auto", "log", "identity"},
             f"link must be an element of ['auto', 'identity', 'log'], got '{link}'",
         )
+
 
         self.power = power
         self.link = link
@@ -302,15 +303,5 @@ class TweedieRegressor(_GeneralizedLinearRegressor):
         """
 
         if self.link == "auto":
-
-            # Identity link
-            if self.power <= 0:
-                return y_preds
-
-            # Log link
-            return numpy.exp(y_preds)
-
-        if self.link == "log":
-            return numpy.exp(y_preds)
-
-        return y_preds
+            return y_preds if self.power <= 0 else numpy.exp(y_preds)
+        return numpy.exp(y_preds) if self.link == "log" else y_preds

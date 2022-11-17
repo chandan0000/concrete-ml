@@ -299,64 +299,63 @@ class UniformQuantizationParameters:
                 # the value quantizes to 1
                 self.scale = stats.rmax
                 self.zero_point = 0
+        elif options.is_symmetric:
+            assert_true(not options.is_qat)
+            self.zero_point = 0
+            self.scale = numpy.maximum(numpy.abs(stats.rmax), numpy.abs(stats.rmin)) / (
+                (2**options.n_bits - 1 - self.offset)
+            )
         else:
-            if options.is_symmetric:
-                assert_true(not options.is_qat)
-                self.zero_point = 0
-                self.scale = numpy.maximum(numpy.abs(stats.rmax), numpy.abs(stats.rmin)) / (
-                    (2**options.n_bits - 1 - self.offset)
+            # Infer the QAT parameters if this is a custom QAT network
+            # which does not store scale/zp in the ONNX directly.
+
+            # Do not infer the parameters if the network was trained with Brevitas
+            # they are stored in the ONNX file and are the true quantization parameters
+            # used in training - no need to infer them.
+
+            # If the parameters do not appear quantized, use PTQ for quantization.
+            # The QuantizedModule will perform error checking of quantized tensors
+            # and will issue an error if the network is not well quantized during training
+            if (
+                options.is_qat
+                and not options.is_precomputed_qat
+                and stats.uvalues is not None
+                and stats.check_is_uniform_quantized(options)
+            ):
+
+                # FIXME: this crashes when a model is poorly trained
+                # the code crashes later on without this check
+                # https://github.com/zama-ai/concrete-ml-internal/issues/1620
+                assert_true(
+                    len(stats.uvalues) > 1,
+                    "A single unique value was detected in a tensor of "
+                    "quantized values in a QAT import.\n"
+                    "Please check the stability thresholds.\n"
+                    "This can occur with a badly trained model.",
                 )
+                unique_scales = numpy.unique(numpy.diff(stats.uvalues))
+                self.scale = unique_scales[0]
+
+            if self.scale is None:
+                self.scale = (
+                    (stats.rmax - stats.rmin) / (2**options.n_bits - 1)
+                    if stats.rmax != stats.rmin
+                    else 1.0
+                )
+
+            if options.is_qat:
+                self.zero_point = 0
             else:
-                # Infer the QAT parameters if this is a custom QAT network
-                # which does not store scale/zp in the ONNX directly.
+                # for mypy
+                assert self.offset is not None
 
-                # Do not infer the parameters if the network was trained with Brevitas
-                # they are stored in the ONNX file and are the true quantization parameters
-                # used in training - no need to infer them.
-
-                # If the parameters do not appear quantized, use PTQ for quantization.
-                # The QuantizedModule will perform error checking of quantized tensors
-                # and will issue an error if the network is not well quantized during training
-                if (
-                    options.is_qat
-                    and not options.is_precomputed_qat
-                    and stats.uvalues is not None
-                    and stats.check_is_uniform_quantized(options)
-                ):
-
-                    # FIXME: this crashes when a model is poorly trained
-                    # the code crashes later on without this check
-                    # https://github.com/zama-ai/concrete-ml-internal/issues/1620
-                    assert_true(
-                        len(stats.uvalues) > 1,
-                        "A single unique value was detected in a tensor of "
-                        "quantized values in a QAT import.\n"
-                        "Please check the stability thresholds.\n"
-                        "This can occur with a badly trained model.",
+                self.zero_point = numpy.round(
+                    (
+                        stats.rmax * (-self.offset)
+                        - (stats.rmin * (2**options.n_bits - 1 - self.offset))
                     )
-                    unique_scales = numpy.unique(numpy.diff(stats.uvalues))
-                    self.scale = unique_scales[0]
-
-                if self.scale is None:
-                    self.scale = (
-                        (stats.rmax - stats.rmin) / (2**options.n_bits - 1)
-                        if stats.rmax != stats.rmin
-                        else 1.0
-                    )
-
-                if options.is_qat:
-                    self.zero_point = 0
-                else:
-                    # for mypy
-                    assert self.offset is not None
-
-                    self.zero_point = numpy.round(
-                        (
-                            stats.rmax * (-self.offset)
-                            - (stats.rmin * (2**options.n_bits - 1 - self.offset))
-                        )
-                        / (stats.rmax - stats.rmin)
-                    ).astype(numpy.int64)
+                    / (stats.rmax - stats.rmin)
+                ).astype(numpy.int64)
 
 
 # FIXME: https://github.com/zama-ai/concrete-ml-internal/issues/1434

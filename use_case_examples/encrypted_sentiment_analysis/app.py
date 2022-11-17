@@ -114,9 +114,11 @@ def run_fhe(user_id):
     encrypted_quantized_encoding = base64.b64encode(encrypted_quantized_encoding).decode()
     encoded_evaluation_key = base64.b64encode(evaluation_key).decode()
 
-    query = {}
-    query["evaluation_key"] = encoded_evaluation_key
-    query["encrypted_encoding"] = encrypted_quantized_encoding
+    query = {
+        "evaluation_key": encoded_evaluation_key,
+        "encrypted_encoding": encrypted_quantized_encoding,
+    }
+
     headers = {"Content-type": "application/json"}
     response = requests.post(
         "http://localhost:8000/predict_sentiment", data=json.dumps(query), headers=headers
@@ -127,8 +129,7 @@ def run_fhe(user_id):
     # buttons, https://github.com/gradio-app/gradio/issues/1877
     numpy.save(f"tmp/tmp_encrypted_prediction_{user_id}.npy", encrypted_prediction)
     encrypted_prediction_shorten = list(encrypted_prediction)[:ENCRYPTED_DATA_BROWSER_LIMIT]
-    encrypted_prediction_shorten_hex = ''.join(f'{i:02x}' for i in encrypted_prediction_shorten)
-    return encrypted_prediction_shorten_hex
+    return ''.join(f'{i:02x}' for i in encrypted_prediction_shorten)
 
 
 def decrypt_prediction(user_id):

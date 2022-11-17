@@ -97,10 +97,9 @@ def test_rf_classifier(
 ):
     """Tests the random forest."""
 
-    if not is_weekly_option:
-        if skip_if_not_weekly:
-            # Skip long tests
-            return
+    if not is_weekly_option and skip_if_not_weekly:
+        # Skip long tests
+        return
 
     if not use_virtual_lib and is_vl_only_option:
         print("Warning, skipping non VL tests")
@@ -230,10 +229,9 @@ def test_rf_regressor(
 ):
     """Tests the random forest."""
 
-    if not is_weekly_option:
-        if skip_if_not_weekly:
-            # Skip long tests
-            return
+    if not is_weekly_option and skip_if_not_weekly:
+        # Skip long tests
+        return
 
     if not use_virtual_lib and is_vl_only_option:
         print("Warning, skipping non VL tests")

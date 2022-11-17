@@ -33,13 +33,7 @@ def main():
         if line in whitelisted_lines:
             continue
 
-        is_bad_line = True
-
-        for pattern in whitelisted_pattern:
-            if pattern in line:
-                is_bad_line = False
-                break
-
+        is_bad_line = all(pattern not in line for pattern in whitelisted_pattern)
         if is_bad_line:
             print("->", line)
             status = 1

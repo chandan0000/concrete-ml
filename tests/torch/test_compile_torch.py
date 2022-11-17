@@ -284,8 +284,9 @@ def compile_and_test_torch_or_onnx(  # pylint: disable=too-many-locals, too-many
 
             output_onnx_file_path = Path(tempfile.mkstemp(suffix=".onnx")[1])
             inputset_as_numpy_tuple = (
-                (val for val in inputset) if isinstance(inputset, tuple) else (inputset,)
+                iter(inputset) if isinstance(inputset, tuple) else (inputset,)
             )
+
             dummy_input = tuple(
                 torch.from_numpy(val[[0], ::]).float() for val in inputset_as_numpy_tuple
             )

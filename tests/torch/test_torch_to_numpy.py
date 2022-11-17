@@ -92,9 +92,7 @@ class CNNInvalid(nn.Module):
         x = self.activation_function(self.fc2(x))
         x = self.fc3(x)
         # Produce a Gather and Slice which are not supported
-        if self.gather_slice:
-            return x[0, 0:-1:2]
-        return x
+        return x[0, 0:-1:2] if self.gather_slice else x
 
 
 class NetWithLoops(torch.nn.Module):

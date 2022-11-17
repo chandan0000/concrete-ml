@@ -95,10 +95,14 @@ def get_preprocessor() -> ColumnTransformer:
         FunctionTransformer(np.log, validate=False), StandardScaler()
     )
 
-    preprocessor = ColumnTransformer(
+    return ColumnTransformer(
         [
             ("passthrough_numeric", "passthrough", ["BonusMalus"]),
-            ("binned_numeric", KBinsDiscretizer(n_bins=10), ["VehAge", "DrivAge"]),
+            (
+                "binned_numeric",
+                KBinsDiscretizer(n_bins=10),
+                ["VehAge", "DrivAge"],
+            ),
             ("log_scaled_numeric", log_scale_transformer, ["Density"]),
             (
                 "onehot_categorical",
@@ -108,7 +112,6 @@ def get_preprocessor() -> ColumnTransformer:
         ],
         remainder="drop",
     )
-    return preprocessor
 
 
 def get_train_test_data(data: pandas.DataFrame) -> Tuple[pandas.DataFrame, pandas.DataFrame]:
@@ -139,7 +142,7 @@ def get_parameters_glms(config: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
     gamma_mask_train = train_data["ClaimAmount"] > 0
     gamma_mask_test = test_data["ClaimAmount"] > 0
 
-    parameters_glms = {
+    return {
         "PoissonRegressor": {
             "regressor": GLMS_STRING_TO_CLASS["PoissonRegressor"],
             "dataset_name": dataset_name,
@@ -169,7 +172,9 @@ def get_parameters_glms(config: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
             "fit_parameters": {
                 "X": train_data[gamma_mask_train],
                 "y": train_data[gamma_mask_train]["AvgClaimAmount"],
-                "regressor__sample_weight": train_data[gamma_mask_train]["ClaimNb"],
+                "regressor__sample_weight": train_data[gamma_mask_train][
+                    "ClaimNb"
+                ],
             },
             "x_test": test_data[gamma_mask_test],
             "score_parameters": {
@@ -199,8 +204,6 @@ def get_parameters_glms(config: Dict[str, Any]) -> Dict[str, Dict[str, Any]]:
             },
         },
     }
-
-    return parameters_glms
 
 
 def get_config(args: argparse.Namespace) -> Dict[str, Any]:
@@ -400,21 +403,21 @@ def main():
 
     # pylint: disable=undefined-loop-variable, too-many-branches
     @progress.track(
-        [
-            {
-                "id": benchmark_name_generator(
-                    model=GLMS_STRING_TO_CLASS[regressor],
-                    dataset_name=parameters_glms[regressor]["dataset_name"],
-                    config={"n_bits": n_bits},
-                ),
-                "name": regressor + "_" + str(n_bits),
-                "parameters": {"parameters": parameters_glms[regressor], "n_bits": n_bits},
-                "samples": args.model_samples,
-            }
-            for regressor in args.regressors
-            for n_bits in config[regressor]["n_bits_list"]
-        ]
-    )
+            [
+                {
+                    "id": benchmark_name_generator(
+                        model=GLMS_STRING_TO_CLASS[regressor],
+                        dataset_name=parameters_glms[regressor]["dataset_name"],
+                        config={"n_bits": n_bits},
+                    ),
+                    "name": regressor + "_" + str(n_bits),
+                    "parameters": {"parameters": parameters_glms[regressor], "n_bits": n_bits},
+                    "samples": args.model_samples,
+                }
+                for regressor in args.regressors
+                for n_bits in config[regressor]["n_bits_list"]
+            ]
+        )
     def perform_benchmark(parameters: Dict, n_bits: Union[Dict, int]) -> None:
         """
         This is our main benchmark function. It gets the data and trains the available GLM models
@@ -558,10 +561,11 @@ def main():
 
         run_and_report_regression_metrics(
             y_test,
-            predictions[0 : args.fhe_samples],
+            predictions[: args.fhe_samples],
             "quant-clear-fhe-set",
             "Quantized Clear on FHE set",
         )
+
 
         # Modify the prediction running time to consider the number of samples
         if x_test.shape[0] > 0:
